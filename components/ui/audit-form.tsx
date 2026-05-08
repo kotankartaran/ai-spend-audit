@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { supabase } from "@/lib/supabase";
 
 export default function AuditForm() {
   const [tool, setTool] = useState("");
@@ -34,7 +35,7 @@ export default function AuditForm() {
     localStorage.setItem("teamSize", teamSize);
   }, [tool, plan, spend, teamSize]);
 
-  const runAudit = () => {
+  const runAudit = async () => {
     const amount = Number(spend);
     const seats = Number(teamSize);
 
@@ -51,93 +52,92 @@ export default function AuditForm() {
       return;
     }
 
+    let calculatedSavings = 0;
+    let calculatedRecommendation = "";
+    let calculatedResult = "";
+
     // ChatGPT
     if (tool === "ChatGPT" && amount > 100) {
-      const save = Math.floor(amount * 0.3);
+      calculatedSavings = Math.floor(amount * 0.3);
 
-      setSavings(save);
+      calculatedRecommendation =
+        "Switch smaller teams from ChatGPT Team to Plus plans";
 
-      setRecommendation(
-        "Switch smaller teams from ChatGPT Team to Plus plans"
-      );
-
-      setResult(
-        `You are likely overspending on ChatGPT subscriptions. Smaller teams often don't require Team plans. Switching eligible users to Plus could reduce costs significantly while maintaining similar functionality.`
-      );
+      calculatedResult =
+        "You are likely overspending on ChatGPT subscriptions. Smaller teams often don't require Team plans. Switching eligible users to Plus could reduce costs significantly while maintaining similar functionality.";
     }
 
     // Cursor
     else if (tool === "Cursor" && amount > 50) {
-      const save = Math.floor(amount * 0.25);
+      calculatedSavings = Math.floor(amount * 0.25);
 
-      setSavings(save);
+      calculatedRecommendation =
+        "Downgrade Cursor Business to Cursor Pro";
 
-      setRecommendation(
-        "Downgrade Cursor Business to Cursor Pro"
-      );
-
-      setResult(
-        `Cursor Business appears expensive for your current setup. Many small teams can operate efficiently on Cursor Pro while keeping access to core AI coding workflows.`
-      );
+      calculatedResult =
+        "Cursor Business appears expensive for your current setup. Many small teams can operate efficiently on Cursor Pro while keeping access to core AI coding workflows.";
     }
 
     // Claude
     else if (tool === "Claude" && amount > 80) {
-      const save = Math.floor(amount * 0.2);
+      calculatedSavings = Math.floor(amount * 0.2);
 
-      setSavings(save);
+      calculatedRecommendation =
+        "Reduce unused Claude Team seats";
 
-      setRecommendation(
-        "Reduce unused Claude Team seats"
-      );
-
-      setResult(
-        `Claude Team plans are frequently over-provisioned. Optimizing active seats and reducing unused allocations could noticeably reduce your monthly AI spend.`
-      );
+      calculatedResult =
+        "Claude Team plans are frequently over-provisioned. Optimizing active seats and reducing unused allocations could noticeably reduce your monthly AI spend.";
     }
 
     // GitHub Copilot
     else if (tool === "GitHub Copilot" && seats < 3) {
-      const save = Math.floor(amount * 0.15);
+      calculatedSavings = Math.floor(amount * 0.15);
 
-      setSavings(save);
+      calculatedRecommendation =
+        "Use GitHub Copilot Individual instead of Business";
 
-      setRecommendation(
-        "Use GitHub Copilot Individual instead of Business"
-      );
-
-      setResult(
-        `GitHub Copilot Business may be unnecessary for very small engineering teams. Individual plans can often provide similar value at lower cost.`
-      );
+      calculatedResult =
+        "GitHub Copilot Business may be unnecessary for very small engineering teams. Individual plans can often provide similar value at lower cost.";
     }
 
     // Gemini
     else if (tool === "Gemini" && amount > 40) {
-      const save = Math.floor(amount * 0.2);
+      calculatedSavings = Math.floor(amount * 0.2);
 
-      setSavings(save);
+      calculatedRecommendation =
+        "Optimize Gemini plan allocation";
 
-      setRecommendation(
-        "Optimize Gemini plan allocation"
-      );
-
-      setResult(
-        `Your Gemini usage indicates possible plan oversizing. Reviewing actual usage patterns may help reduce unnecessary recurring costs.`
-      );
+      calculatedResult =
+        "Your Gemini usage indicates possible plan oversizing. Reviewing actual usage patterns may help reduce unnecessary recurring costs.";
     }
 
     // Default
     else {
-      setSavings(0);
+      calculatedSavings = 0;
 
-      setRecommendation(
-        "No major changes recommended"
-      );
+      calculatedRecommendation =
+        "No major changes recommended";
 
-      setResult(
-        "Your current AI spending appears reasonably optimized. No major savings opportunities were identified."
-      );
+      calculatedResult =
+        "Your current AI spending appears reasonably optimized. No major savings opportunities were identified.";
     }
+
+    // Update UI
+    setSavings(calculatedSavings);
+    setRecommendation(calculatedRecommendation);
+    setResult(calculatedResult);
+
+    // Save to Supabase
+    await supabase.from("audits").insert([
+      {
+        tool,
+        plan,
+        spend: amount,
+        team_size: seats,
+        savings: calculatedSavings,
+        recommendation: calculatedRecommendation,
+      },
+    ]);
   };
 
   return (
@@ -191,7 +191,7 @@ export default function AuditForm() {
           />
         </div>
 
-        {/* Monthly Spend */}
+        {/* Spend */}
         <div>
           <label className="block mb-2 text-sm font-medium">
             Monthly Spend ($)
