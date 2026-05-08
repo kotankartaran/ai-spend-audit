@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 export default function AuditForm() {
   const [tool, setTool] = useState("");
@@ -10,6 +11,7 @@ export default function AuditForm() {
   const [result, setResult] = useState("");
   const [savings, setSavings] = useState(0);
   const [recommendation, setRecommendation] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
 
   // Load saved data
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function AuditForm() {
     if (savedTeam) setTeamSize(savedTeam);
   }, []);
 
-  // Save form data
+  // Save data
   useEffect(() => {
     localStorage.setItem("tool", tool);
     localStorage.setItem("plan", plan);
@@ -35,6 +37,12 @@ export default function AuditForm() {
   const runAudit = () => {
     const amount = Number(spend);
     const seats = Number(teamSize);
+
+    const id = uuidv4();
+
+    setShareUrl(
+      `${window.location.origin}/audit/${id}`
+    );
 
     if (!tool || !plan || !spend) {
       setResult("Please fill all required fields.");
@@ -134,6 +142,7 @@ export default function AuditForm() {
 
   return (
     <div className="space-y-6 w-full max-w-2xl">
+
       {/* Main Card */}
       <div className="bg-zinc-900 p-8 rounded-2xl space-y-6 border border-zinc-800 shadow-2xl">
 
@@ -267,6 +276,25 @@ export default function AuditForm() {
             </div>
 
           </div>
+
+          {/* Share URL */}
+          {shareUrl && (
+            <div className="mt-6 bg-black border border-zinc-800 p-4 rounded-xl">
+
+              <p className="text-zinc-500 text-sm">
+                Shareable Audit URL
+              </p>
+
+              <a
+                href={shareUrl}
+                target="_blank"
+                className="text-green-400 break-all"
+              >
+                {shareUrl}
+              </a>
+
+            </div>
+          )}
 
           {/* Annual Savings */}
           {savings > 0 && (
